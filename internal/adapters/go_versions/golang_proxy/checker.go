@@ -11,7 +11,8 @@ import (
 	"golang.org/x/mod/module"
 	"golang.org/x/mod/semver"
 
-	"github.com/Tortik3000/gomodinfo/internal/entity"
+	"github.com/Tortik3000/gomodinfo/internal/model"
+	modelErr "github.com/Tortik3000/gomodinfo/internal/model/errors/go_versions"
 )
 
 // Checker implements VersionChecker using the public Go golang_proxy
@@ -19,7 +20,7 @@ type Checker struct{}
 
 func New() *Checker { return &Checker{} }
 
-func (c *Checker) Enrich(_ context.Context, deps []*entity.Dependency) error {
+func (c *Checker) Enrich(_ context.Context, deps []*model.Dependency) error {
 	for _, d := range deps {
 		latest, err := latestVersion(d.Name)
 		if err == nil && latest != "" {
@@ -41,7 +42,7 @@ func (c *Checker) Enrich(_ context.Context, deps []*entity.Dependency) error {
 func latestVersion(modPath string) (string, error) {
 	esc, err := module.EscapePath(modPath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w: %v", modelErr.ErrInvalidModulePath, err)
 	}
 
 	u := url.URL{
@@ -50,25 +51,29 @@ func latestVersion(modPath string) (string, error) {
 		Path:   path.Join("/", esc, "@latest"),
 	}
 
-	req, _ := http.NewRequestWithContext(
-		context.Background(),
-		http.MethodGet,
-		u.String(),
-		nil,
-	)
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, u.String(), nil)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w: %v", modelErr.ErrProxyUnavailable, err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("golang_proxy: %s", resp.Status)
+	switch resp.StatusCode {
+	case http.StatusOK:
+	case http.StatusNotFound, http.StatusGone:
+		return "", modelErr.ErrModuleNotFound
+	default:
+		return "", fmt.Errorf("%w: unexpected status %s", modelErr.ErrInvalidProxyResponse, resp.Status)
 	}
 
 	var data struct{ Version string }
 	if err = json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return "", err
+		return "", fmt.Errorf("%w: %v", modelErr.ErrInvalidProxyResponse, err)
 	}
+
+	if data.Version == "" {
+		return "", modelErr.ErrInvalidProxyResponse
+	}
+
 	return data.Version, nil
 }

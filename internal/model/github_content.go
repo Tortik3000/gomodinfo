@@ -1,4 +1,4 @@
-package entity
+package model
 
 type GitHubContent struct {
 	Name     string `json:"name"`

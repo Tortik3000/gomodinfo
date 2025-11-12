@@ -51,6 +51,5 @@ gomodinfo repo https://github.com/owner/private-repo --token $GITHUB_TOKEN
 
 ## ToDo
 
-* [ ] Tests
-* [ ] Error Handling
+* [ ] Type return text
 

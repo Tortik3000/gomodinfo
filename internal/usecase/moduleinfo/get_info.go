@@ -3,14 +3,14 @@ package moduleinfo
 import (
 	"context"
 
-	"github.com/Tortik3000/gomodinfo/internal/entity"
+	"github.com/Tortik3000/gomodinfo/internal/model"
 )
 
 // GetInfo resolves repo URL, fetches go.mod, parses it and enriches dependencies
 func (uc *UseCase) GetInfo(
 	ctx context.Context,
 	repoURL string,
-) (*entity.ModuleInfo, error) {
+) (*model.ModuleInfo, error) {
 	ref, err := uc.repo.Resolve(repoURL)
 	if err != nil {
 		return nil, err

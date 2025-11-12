@@ -2,13 +2,15 @@ package githubadapter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/cli/go-gh/pkg/repository"
 	"github.com/google/go-github/v53/github"
 	"golang.org/x/oauth2"
 
-	"github.com/Tortik3000/gomodinfo/internal/entity"
+	"github.com/Tortik3000/gomodinfo/internal/model"
+	modelErr "github.com/Tortik3000/gomodinfo/internal/model/errors/vcs"
 )
 
 // Client implements RepoContentProvider for GitHub
@@ -24,47 +26,55 @@ func New(token string) *Client {
 	}
 }
 
-func (c *Client) Resolve(repoURL string) (*entity.RepoRef, error) {
+func (c *Client) Resolve(repoURL string) (*model.RepoRef, error) {
 	if repoURL == "" {
-		return nil, fmt.Errorf("invalid repository reference: empty input")
+		return nil, fmt.Errorf("%w: empty input", modelErr.ErrInvalidRepoReference)
 	}
 
 	r, err := repository.Parse(repoURL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid repository reference %q: %w", repoURL, err)
+		return nil, fmt.Errorf("%w %q: %w", modelErr.ErrInvalidRepoReference, repoURL, err)
 	}
 	host := r.Host()
 	if host == "" {
 		host = hostCVS
 	}
 
-	return &entity.RepoRef{
+	return &model.RepoRef{
 		Host:  host,
 		Owner: r.Owner(),
 		Name:  r.Name(),
 	}, nil
 }
 
-func (c *Client) GetGoMod(ctx context.Context, ref *entity.RepoRef) ([]byte, error) {
+func (c *Client) GetGoMod(ctx context.Context, ref *model.RepoRef) ([]byte, error) {
 	if ref.Host != hostCVS {
-		return nil, fmt.Errorf("unsupported host: %s", ref.Host)
+		return nil, fmt.Errorf("%w: %s", modelErr.ErrUnsupportedHost, ref.Host)
 	}
 
 	gh := newGH(ctx, c.token)
-
-	fileContent, _, _, err := gh.Repositories.GetContents(ctx,
+	fileContent, _, _, err := gh.Repositories.GetContents(
+		ctx,
 		ref.Owner,
 		ref.Name,
 		"go.mod",
 		nil,
 	)
 	if err != nil {
-		return nil, err
+		var rErr *github.ErrorResponse
+		if errors.As(err, &rErr) {
+			if rErr.Response.StatusCode == 404 {
+				return nil, modelErr.ErrNotFound
+			}
+			return nil, fmt.Errorf("GitHub API error (%d): %w", rErr.Response.StatusCode, err)
+		}
+
+		return nil, fmt.Errorf("%w: %v", modelErr.ErrNetwork, err)
 	}
 
 	content, err := fileContent.GetContent()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", modelErr.ErrDecodingContent, err)
 	}
 
 	return []byte(content), nil
