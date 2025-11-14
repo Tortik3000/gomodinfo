@@ -28,7 +28,7 @@ jobs:
       - name: Linter
         uses: golangci/golangci-lint-action@v8
         with:
-          version: v1.64.5
+          version: v2.1
 
       - uses: gwatts/go-coverage-action@v2
         id: coverage
