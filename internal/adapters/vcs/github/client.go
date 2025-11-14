@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/cli/go-gh/pkg/repository"
 	"github.com/google/go-github/v53/github"
@@ -63,7 +64,7 @@ func (c *Client) GetGoMod(ctx context.Context, ref *model.RepoRef) ([]byte, erro
 	if err != nil {
 		var rErr *github.ErrorResponse
 		if errors.As(err, &rErr) {
-			if rErr.Response.StatusCode == 404 {
+			if rErr.Response.StatusCode == http.StatusNotFound {
 				return nil, modelErr.ErrNotFound
 			}
 			return nil, fmt.Errorf("GitHub API error (%d): %w", rErr.Response.StatusCode, err)
