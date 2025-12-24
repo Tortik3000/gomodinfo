@@ -2,13 +2,14 @@
 
 CLI для получения информации о `go.mod` выбранного Go репозитория
 
+
 ---
 
 ## Основной функционал
 
-* Извлечение имени Go модуля
-* Получение версии Go, указанной в `go.mod`
-* Анализ зависимостей
+* Копирование репозитория
+* Поиск всех `go.mod` файлов
+* Анализ зависимостей в `go.mod`
 * Поиск зависимостей, которые можно обновить
 
 ---
@@ -24,9 +25,9 @@ CLI для получения информации о `go.mod` выбранно�
 
 ## Команды CLI
 
-| Команда | Описание                           | Флаги                                      |
-| ------- | ---------------------------------- | ------------------------------------------ |
-| `repo`  | Получение информации о репозитории | `-t`, `--token` для передачи GitHub токена |
+| Команда | Описание                           |
+| ------- | ---------------------------------- |
+| `repo`  | Получение информации о репозитории |
 
 --- 
 
@@ -43,13 +44,7 @@ make build
 
 ```bash
 gomodinfo repo https://github.com/golang/go
-gomodinfo repo owner/repo
-gomodinfo repo https://github.com/owner/private-repo --token $GITHUB_TOKEN
+gomodinfo repo https://gitlab.com/golang_development/go-fiber-boilerplate
+gomodinfo repo https://github.com/your/private-repo
 ```
-
----
-
-## ToDo
-
-* [ ] Type return text
 

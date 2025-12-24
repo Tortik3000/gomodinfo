@@ -10,7 +10,7 @@ type (
 	// repoContentProvider to fetch repository contents (go.mod)
 	repoContentProvider interface {
 		Resolve(repoURL string) (*model.RepoRef, error)
-		GetGoMod(ctx context.Context, ref *model.RepoRef) ([]byte, error)
+		GetGoMods(ctx context.Context, repoURL string) (map[string][]byte, error)
 	}
 
 	// goModParser to parse go.mod
